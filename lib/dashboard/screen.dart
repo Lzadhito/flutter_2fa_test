@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kominfo_dashboard_test/login/class/auth.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -12,7 +13,7 @@ class DashboardScreen extends StatelessWidget {
           const Text('Hello ini dashboard!'),
           TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Auth.logout(context);
               },
               child: const Text('Back'))
         ],

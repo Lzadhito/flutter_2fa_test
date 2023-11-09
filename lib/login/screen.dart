@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
+import 'package:kominfo_dashboard_test/login/class/auth.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 
@@ -24,117 +24,57 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    check2FAAvailability();
+    Auth.is2FAAvailable().then((value) => {
+          debugPrint('availability: $value'),
+          setState(() {
+            _is2FAAvailable = value;
+          })
+        });
   }
 
-  check2FAAvailability() async {
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate =
-        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-
-    final List<BiometricType> availableBiometrics =
-        await auth.getAvailableBiometrics();
-
-    _is2FAAvailable = canAuthenticate && availableBiometrics.isNotEmpty;
+  @override
+  void dispose() {
+    super.dispose();
   }
 
-  Future<void> handleSubmitLogin(context) async {
+  void handleLogin(context) {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      try {
-        await supabase
-            .from('Users')
-            .select('email, password')
-            .eq('email', email)
-            .eq('password', password)
-            .single();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              duration: Duration(seconds: 1), content: Text('Login Berhasil')),
-        );
-        Navigator.pushNamed(context, '/dashboard');
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              duration: Duration(seconds: 1),
-              backgroundColor: Colors.red,
-              content: Text('username atau password salah')),
-        );
-      }
+      Auth.login(email, password, context);
     }
   }
 
-  Future<void> handleLogin2FA(context) async {
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate =
-        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-
-    final List<BiometricType> availableBiometrics =
-        await auth.getAvailableBiometrics();
-
-    if (canAuthenticate && availableBiometrics.isNotEmpty) {
-      try {
-        final bool didAuthenticate = await auth.authenticate(
-            localizedReason: 'Please authenticate to show account balance',
-            options: const AuthenticationOptions(biometricOnly: false));
-
-        if (didAuthenticate) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                duration: Duration(seconds: 1),
-                content: Text('Login Berhasil')),
-          );
-          Navigator.pushNamed(context, '/dashboard');
-        }
-        // ···
-      } on PlatformException catch (error) {
-        debugPrint(error.toString());
-        // ...
-      }
-      // Some biometrics are enrolled.
+  void handleRegister(context) {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      Auth.register(email, password, context);
     }
   }
 
-  void handleRegister(context) async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
+  void handleClick2FA(context) async {
+    bool isLoggedIn = await Auth.isLoggedIn();
+    if (!isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            duration: Duration(seconds: 200), content: Text('Mendaftarkan')),
-      );
-
-      try {
-        await supabase
-            .from('Users')
-            .select('email, password')
-            .eq('email', email)
-            .single();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            duration: Duration(seconds: 1),
             backgroundColor: Colors.red,
-            content: Text('Email sudah terdaftar')));
-        return;
-      } catch (error) {
-        try {
-          await supabase
-              .from('Users')
-              .insert({'email': email, 'password': password});
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                duration: Duration(seconds: 1),
-                content: Text('Registrasi Berhasil')),
-          );
-          Navigator.pushNamed(context, '/dashboard');
-        } catch (error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                duration: const Duration(seconds: 1),
-                backgroundColor: Colors.red,
-                content: Text(error.toString())),
-          );
-        }
-      }
+            duration: Duration(seconds: 1),
+            content: Text('Anda harus login terlebih dahulu')),
+      );
+      return null;
     }
+
+    bool is2FAAvailable = await Auth.is2FAAvailable();
+    if (!is2FAAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 1),
+            content: Text('Smartphone anda tidak terpasang suatu pengaman')),
+      );
+      return null;
+    }
+
+    Auth.handleLogin2FA(context);
   }
 
   void handleWarn2FANotSet() {
@@ -185,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const Gap(20),
                   TextFormField(
-                    style: TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 12),
                     onSaved: (value) {
                       password = value ?? '';
                     },
@@ -199,7 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: 'Masukkan Password'),
                     // The validator receives the text that the user has entered.
                     validator: (value) {
-                      debugPrint(value);
                       if (value == null || value.isEmpty) {
                         return 'Mohon masukkan password';
                       }
@@ -211,21 +150,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Expanded(
                         child: FilledButton(
-                          onPressed: () => handleSubmitLogin(context),
+                          onPressed: () => handleLogin(context),
                           child: const Text('Login'),
                         ),
                       ),
                       const Gap(10),
                       IconButton.filled(
-                        style: IconButton.styleFrom(
-                            backgroundColor: _is2FAAvailable
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.grey),
-                        icon: const Icon(Icons.fingerprint_rounded),
-                        onPressed: _is2FAAvailable
-                            ? () => handleLogin2FA(context)
-                            : handleWarn2FANotSet,
-                      )
+                          style: IconButton.styleFrom(
+                              backgroundColor: _is2FAAvailable
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey),
+                          icon: const Icon(Icons.fingerprint_rounded),
+                          onPressed: () => handleClick2FA(context))
                     ],
                   ),
                   const Gap(20),
