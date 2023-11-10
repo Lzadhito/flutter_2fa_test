@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final supabase = Supabase.instance.client;
   final LocalAuthentication auth = LocalAuthentication();
 
+  bool _isPasswordVisible = false;
   bool _is2FAAvailable = false;
   String email = '';
   String password = '';
@@ -96,22 +97,45 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           children: [
             Container(
-              height: 200,
+              height: 180,
             ),
             Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding:
+                  const EdgeInsets.only(left: 32.0, right: 32.0, top: 24.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    'Login',
+                    textAlign: TextAlign.left,
+                    style: TextStyle(fontSize: 27, fontWeight: FontWeight.bold),
+                  ),
+                  const Gap(5),
+                  const Row(
+                    children: [
+                      Text(
+                        'Login ke ',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                      Text(
+                        'Portal Layanan TIK DKI Jakarta',
+                        style: TextStyle(decoration: TextDecoration.underline),
+                      ),
+                    ],
+                  ),
+                  const Gap(20),
                   TextFormField(
-                    style: const TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 13),
                     onSaved: (value) {
                       email = value ?? '';
                     },
                     decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 15, horizontal: 10),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
+                          borderRadius: BorderRadius.circular(20.0),
                         ),
-                        hintText: 'Masukkan Email'),
+                        hintText: 'Email'),
                     // The validator receives the text that the user has entered.
                     validator: (email) {
                       if (email != null && email.isNotEmpty) {
@@ -125,18 +149,39 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const Gap(20),
                   TextFormField(
-                    style: const TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 13),
                     onSaved: (value) {
                       password = value ?? '';
                     },
-                    obscureText: true,
                     enableSuggestions: true,
                     autocorrect: false,
+                    obscureText:
+                        !_isPasswordVisible, //This will obscure text dynamically
                     decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      hintText: 'Password',
+                      // Here is key idea
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          // Based on passwordVisible state choose the icon
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          size: 23,
+                          color: Colors.black54,
                         ),
-                        hintText: 'Masukkan Password'),
+                        onPressed: () {
+                          // Update the state i.e. toogle the state of passwordVisible variable
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
                     // The validator receives the text that the user has entered.
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -149,9 +194,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: FilledButton(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.login_rounded),
                           onPressed: () => handleLogin(context),
-                          child: const Text('Login'),
+                          label: const Text('Login'),
                         ),
                       ),
                       const Gap(10),
@@ -168,14 +214,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Row(children: <Widget>[
                     Expanded(child: Divider()),
                     Gap(10),
-                    Text("atau", style: TextStyle(color: Colors.grey)),
+                    Text("atau", style: TextStyle(color: Colors.black54)),
                     Gap(10),
                     Expanded(child: Divider()),
                   ]),
                   const Gap(20),
                   ElevatedButton.icon(
                       icon: const Icon(Icons.person_add_rounded),
-                      onPressed: null,
+                      onPressed: () => {},
                       label: const Text(
                         'Daftar menggunakan akun e-TPP',
                         style: TextStyle(fontSize: 13),
