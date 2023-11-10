@@ -8,7 +8,7 @@ class Auth {
   static void _onLoginSuccess(String email, context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('email', email);
-    Navigator.pushNamed(context, '/dashboard');
+    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
   }
 
   static void login(String email, String password, context) async {
@@ -74,7 +74,6 @@ class Auth {
   static Future<bool> isLoggedIn() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? emailPref = prefs.getString('email');
-    debugPrint('emailPref: $emailPref');
     if (emailPref == null || emailPref.isEmpty) return false;
     return true;
   }
@@ -114,11 +113,11 @@ class Auth {
                 duration: Duration(seconds: 1),
                 content: Text('Login Berhasil')),
           );
-          Navigator.pushNamed(context, '/dashboard');
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/dashboard', (route) => false);
         }
         // ···
-      } on PlatformException catch (error) {
-        debugPrint(error.toString());
+      } on PlatformException {
         // ...
       }
       // Some biometrics are enrolled.

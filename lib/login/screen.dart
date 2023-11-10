@@ -26,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     Auth.is2FAAvailable().then((value) => {
-          debugPrint('availability: $value'),
           setState(() {
             _is2FAAvailable = value;
           })
